@@ -61,6 +61,8 @@ class YouTubeScraper:
         audio_bitrate: str = '192',
         proxy: Optional[str] = None,
         use_tor: bool = False,
+        cookies_from_browser: Optional[str] = None,
+        cookies_file: Optional[str] = None,
     ):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
@@ -69,6 +71,8 @@ class YouTubeScraper:
         self.audio_bitrate = audio_bitrate
         self.proxy = proxy
         self.use_tor = use_tor
+        self.cookies_from_browser = cookies_from_browser
+        self.cookies_file = cookies_file
         self.progress = None
         self.task = None
         
@@ -127,6 +131,7 @@ class YouTubeScraper:
             'merge_output_format': 'mp4',  # Merge to mp4 container
             'quiet': True,
             'no_warnings': True,
+            'no_color': True,  # Disable ANSI color codes in output
         }
         
         # Add audio quality postprocessor for better audio
@@ -143,6 +148,12 @@ class YouTubeScraper:
             opts['proxy'] = self.proxy
         elif self.use_tor:
             opts['proxy'] = 'socks5://127.0.0.1:9050'
+        
+        # Add cookie settings to bypass bot detection
+        if self.cookies_from_browser:
+            opts['cookiesfrombrowser'] = (self.cookies_from_browser,)
+        elif self.cookies_file:
+            opts['cookiefile'] = self.cookies_file
         
         return opts
     
@@ -250,6 +261,13 @@ def show_config_summary(config: Dict):
     else:
         table.add_row("Proxy", "None")
     
+    if config.get('cookies_from_browser'):
+        table.add_row("Cookies", f"From browser: {config['cookies_from_browser']}")
+    elif config.get('cookies_file'):
+        table.add_row("Cookies", f"From file: {config['cookies_file']}")
+    else:
+        table.add_row("Cookies", "None")
+    
     console.print("\n")
     console.print(table)
     console.print("\n")
@@ -310,6 +328,30 @@ def interactive_mode():
         if not use_tor:
             proxy = Prompt.ask("Enter proxy URL (e.g., socks5://127.0.0.1:1080)")
     
+    # Cookie settings for bot detection bypass
+    cookies_from_browser = None
+    cookies_file = None
+    
+    use_cookies = Confirm.ask("Use cookies to bypass bot detection?", default=False)
+    if use_cookies:
+        console.print("\n[bold]Cookie options:[/bold]")
+        console.print("  1. Extract from browser (chrome, firefox, edge, safari, etc.)")
+        console.print("  2. Use cookies.txt file")
+        cookie_choice = Prompt.ask("Choose option", choices=['1', '2'], default='1')
+        
+        if cookie_choice == '1':
+            console.print("\n[bold]Available browsers:[/bold]")
+            console.print("  chrome, firefox, edge, safari, opera, brave, chromium")
+            cookies_from_browser = Prompt.ask(
+                "Enter browser name",
+                default="chrome"
+            )
+        else:
+            cookies_file = Prompt.ask(
+                "Enter path to cookies.txt file",
+                default="cookies.txt"
+            )
+    
     # Show configuration
     config = {
         'quality': quality,
@@ -318,6 +360,8 @@ def interactive_mode():
         'output_dir': output_dir,
         'proxy': proxy,
         'use_tor': use_tor,
+        'cookies_from_browser': cookies_from_browser,
+        'cookies_file': cookies_file,
     }
     
     show_config_summary(config)
@@ -331,6 +375,8 @@ def interactive_mode():
             audio_bitrate=audio_bitrate,
             proxy=proxy,
             use_tor=use_tor,
+            cookies_from_browser=cookies_from_browser,
+            cookies_file=cookies_file,
         )
         
         success, failed = scraper.download_from_queue(queue_file)
@@ -365,6 +411,12 @@ Examples:
 
   # Use custom proxy
   python scraper.py --proxy socks5://127.0.0.1:1080 -i downloadqueue.txt
+  
+  # Extract cookies from Chrome to bypass bot detection
+  python scraper.py --cookies-from-browser chrome -i downloadqueue.txt
+  
+  # Use cookies.txt file
+  python scraper.py --cookies cookies.txt -i downloadqueue.txt
         """
     )
     
@@ -414,6 +466,18 @@ Examples:
     )
     
     parser.add_argument(
+        '--cookies-from-browser',
+        help='Extract cookies from browser (chrome, firefox, edge, safari, etc.)',
+        default=None
+    )
+    
+    parser.add_argument(
+        '--cookies',
+        help='Path to cookies.txt file',
+        default=None
+    )
+    
+    parser.add_argument(
         '--interactive',
         help='Run in interactive mode',
         action='store_true'
@@ -434,6 +498,8 @@ Examples:
             'output_dir': args.output,
             'proxy': args.proxy,
             'use_tor': args.tor,
+            'cookies_from_browser': args.cookies_from_browser,
+            'cookies_file': args.cookies,
         }
         
         show_config_summary(config)
@@ -445,6 +511,8 @@ Examples:
             audio_bitrate=args.audio_bitrate,
             proxy=args.proxy,
             use_tor=args.tor,
+            cookies_from_browser=args.cookies_from_browser,
+            cookies_file=args.cookies,
         )
         
         success, failed = scraper.download_from_queue(args.input)

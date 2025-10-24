@@ -87,6 +87,8 @@ python scraper.py --interactive
 | `-a, --audio-bitrate` | Audio bitrate in kbps (320, 256, 192, 128, 96) | `192` |
 | `--proxy` | Proxy URL (e.g., socks5://127.0.0.1:1080) | None |
 | `--tor` | Use Tor network | False |
+| `--cookies-from-browser` | Extract cookies from browser (chrome, firefox, edge, safari, etc.) | None |
+| `--cookies` | Path to cookies.txt file | None |
 | `--interactive` | Run in interactive mode | False |
 
 ## Configuration File
@@ -180,6 +182,74 @@ python scraper.py --proxy http://proxy.example.com:8080
 python scraper.py --proxy socks5://user:pass@127.0.0.1:1080
 ```
 
+## Bypassing Bot Detection with Cookies
+
+YouTube may sometimes block downloads with "Sign in to confirm you're not a bot" errors. You can bypass this by using cookies from your browser.
+
+### Option 1: Extract Cookies from Browser (Recommended)
+
+The easiest method is to let yt-dlp extract cookies directly from your browser:
+
+```bash
+# Extract from Chrome
+python scraper.py --cookies-from-browser chrome
+
+# Extract from Firefox
+python scraper.py --cookies-from-browser firefox
+
+# Extract from Edge
+python scraper.py --cookies-from-browser edge
+
+# Extract from Safari (macOS)
+python scraper.py --cookies-from-browser safari
+```
+
+**Supported browsers**: chrome, firefox, edge, safari, opera, brave, chromium, vivaldi
+
+**Note**: Make sure you're logged into YouTube in the browser you're extracting cookies from.
+
+### Option 2: Export Cookies to File
+
+If automatic extraction doesn't work, you can manually export cookies:
+
+1. **Install a cookie export extension**:
+   - Chrome/Edge: [Get cookies.txt LOCALLY](https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc)
+   - Firefox: [cookies.txt](https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/)
+
+2. **Export cookies**:
+   - Navigate to YouTube while logged in
+   - Click the extension icon
+   - Export cookies as `cookies.txt` in Netscape format
+   - Save to your project directory
+
+3. **Use the cookies file**:
+```bash
+python scraper.py --cookies cookies.txt
+```
+
+### Interactive Mode Cookie Setup
+
+When using interactive mode, you'll be prompted:
+```
+Use cookies to bypass bot detection? [y/N]: y
+
+Cookie options:
+  1. Extract from browser (chrome, firefox, edge, safari, etc.)
+  2. Use cookies.txt file
+Choose option [1]: 1
+
+Available browsers:
+  chrome, firefox, edge, safari, opera, brave, chromium
+Enter browser name [chrome]: chrome
+```
+
+### Troubleshooting Cookie Issues
+
+- **"Could not find browser" error**: Make sure the browser is installed and yt-dlp can access it
+- **"Could not extract cookies" error**: Try closing the browser and running the scraper again
+- **Still getting bot detection**: Try logging out and back into YouTube, then extract cookies again
+- **Permission errors**: On Linux/macOS, you may need to close the browser before extracting cookies
+
 ## Examples
 
 ### Download in highest quality with AV1 codec
@@ -197,10 +267,29 @@ python scraper.py -q 4k -a 320 --tor
 python scraper.py -o ~/Videos/YouTube -q 1440p -c h265 -a 256
 ```
 
+### Bypass bot detection with browser cookies
+```bash
+# Using Chrome cookies
+python scraper.py --cookies-from-browser chrome
+
+# Using Firefox cookies
+python scraper.py --cookies-from-browser firefox
+
+# Using cookies.txt file
+python scraper.py --cookies cookies.txt
+```
+
 ## Troubleshooting
 
-### "FFmpeg not found"
+### "FFmpeg not found" or "You have requested merging of multiple formats but ffmpeg is not installed"
 Install FFmpeg as described in the Installation section.
+
+### "Sign in to confirm you're not a bot"
+YouTube is blocking the download. Use cookies to bypass this:
+```bash
+python scraper.py --cookies-from-browser chrome
+```
+See the "Bypassing Bot Detection with Cookies" section for more details.
 
 ### "No formats found"
 The video might not be available in your requested quality/codec. Try a different quality preset or codec.
