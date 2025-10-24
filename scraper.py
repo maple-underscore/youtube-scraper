@@ -113,14 +113,20 @@ class YouTubeScraper:
                 downloaded = d.get('downloaded_bytes', 0)
                 
                 if total > 0:
+                    # Update total if it changed (first update or estimate became exact)
+                    current_total = self.progress.tasks[self.task].total
+                    if current_total != total:
+                        self.progress.update(self.task, total=total)
+                    
                     self.progress.update(
                         self.task,
-                        total=total,
                         completed=downloaded,
                     )
         elif d['status'] == 'finished':
             if self.progress and self.task is not None:
-                self.progress.update(self.task, completed=d.get('total_bytes', 0))
+                # Mark as complete - use the last known total from the task itself
+                total = self.progress.tasks[self.task].total
+                self.progress.update(self.task, completed=total, total=total)
     
     def _get_ydl_opts(self, url: str) -> Dict:
         """Build yt-dlp options dictionary."""
@@ -180,9 +186,10 @@ class YouTubeScraper:
                     console=console,
                 ) as progress:
                     self.progress = progress
+                    # Start with None total - will be updated when download starts
                     self.task = progress.add_task(
                         f"[green]Downloading {title[:50]}...",
-                        total=100
+                        total=None
                     )
                     
                     # Download the video
